@@ -9,16 +9,17 @@ import localeEs from '@angular/common/locales/es';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth-interceptor';
+import { API_URL } from './app.config.token';
 
 registerLocaleData(localeEs, 'es');
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    // Quitamos provideZoneChangeDetection por ahora para resolver el error NG0908
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAnimationsAsync(),
     provideNativeDateAdapter(),
-    { provide: LOCALE_ID, useValue: 'es' }
+    { provide: LOCALE_ID, useValue: 'es' },
+    { provide: API_URL, useValue: 'https://back-techaccess.onrender.com/api' }
   ]
 };

@@ -1,43 +1,29 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, inject, signal, computed, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { LoginInterface } from '../interfaces/login';
+import { API_URL } from '../../app.config.token';
 
-export interface Module {
-  id: number;
-  name: string;
-  description: string;
-}
-
-export interface Role {
-  id: number;
-  name: string;
-  description: string;
-  modules: Module[];
-}
-
-export interface User {
-  id: number;
-  name: string;
-  lastName: string;
-  docType: string;
-  docNumber: string;
-  email: string;
-  isActive: boolean;
-  roles: Role[];
-}
-
-export interface AuthResponse {
-  access_token: string;
-  user: User;
-}
+export interface Module { id: number; name: string; description: string; }
+export interface Role { id: number; name: string; description: string; modules: Module[]; }
+export interface User { id: number; name: string; lastName: string; docType: string; docNumber: string; email: string; isActive: boolean; roles: Role[]; }
+export interface AuthResponse { access_token: string; user: User; }
 
 @Injectable({
   providedIn: 'root',
 })
 export class Auth {
   private http = inject(HttpClient);
-  private readonly API_URL = 'http://localhost:3000/api/auth';
+  
+  // Inyectamos la base URL
+  constructor(
+    @Inject(API_URL) private apiUrlBase: string
+  ) {
+    this.restoreAuth();
+  }
+
+  // Definimos la ruta dinámica de auth
+  private get authUrl() { return `${this.apiUrlBase}/auth`; }
 
   private _authStatus = signal<AuthResponse | null>(null);
 
@@ -48,10 +34,6 @@ export class Auth {
     const user = this._authStatus()?.user;
     return user ? user.roles.flatMap(r => r.modules.map(m => m.name)) : [];
   });
-
-  constructor() {
-    this.restoreAuth();
-  }
 
   private restoreAuth(): void {
     const token = localStorage.getItem('token');
@@ -70,19 +52,12 @@ export class Auth {
     }
   }
 
-  // ← SOLO UN MÉTODO login()
   public login(credentials: LoginInterface): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.API_URL}/login`, credentials).pipe(
+    return this.http.post<AuthResponse>(`${this.authUrl}/login`, credentials).pipe(
       tap((response) => {
         this._authStatus.set(response);
-
-        if (response.access_token) {
-          localStorage.setItem('token', response.access_token);
-        }
-
-        if (response.user) {
-          localStorage.setItem('user', JSON.stringify(response.user));
-        }
+        if (response.access_token) localStorage.setItem('token', response.access_token);
+        if (response.user) localStorage.setItem('user', JSON.stringify(response.user));
       })
     );
   }
@@ -94,11 +69,11 @@ export class Auth {
   }
 
   forgotPassword(email: string) {
-    return this.http.post(`${this.API_URL}/forgot-password`, { email });
+    return this.http.post(`${this.authUrl}/forgot-password`, { email });
   }
 
   resetPassword(token: string, newPassword: string) {
-    return this.http.post(`${this.API_URL}/reset-password`, { token, newPassword });
+    return this.http.post(`${this.authUrl}/reset-password`, { token, newPassword });
   }
 
   public userRoles = computed(() => {
@@ -106,11 +81,6 @@ export class Auth {
     return user ? user.roles.map(r => r.name.toUpperCase()) : [];
   });
 
-  public isVigilante = computed(() => {
-    return this.userRoles().some(r => r.includes('VIGILANTE'));
-  });
-
-  public isAdmin = computed(() => {
-    return this.userRoles().some(r => r.includes('ADMIN'));
-  });
+  public isVigilante = computed(() => this.userRoles().some(r => r.includes('VIGILANTE')));
+  public isAdmin = computed(() => this.userRoles().some(r => r.includes('ADMIN')));
 }
