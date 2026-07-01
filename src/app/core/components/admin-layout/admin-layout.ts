@@ -83,7 +83,7 @@ export class AdminLayoutComponent {
 
  logout(): void {
     this.authService.logout();
-    this.router.navigate(['/auth']).then(() => {
+    this.router.navigate(['/auth/login']).then(() => {
       window.location.reload();
     });
   }
