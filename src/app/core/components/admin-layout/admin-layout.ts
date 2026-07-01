@@ -81,7 +81,10 @@ export class AdminLayoutComponent {
     return iconMap[name] ?? 'extension';
   }
 
-  logout(): void {
+ logout(): void {
     this.authService.logout();
+    this.router.navigate(['/login']).then(() => {
+      window.location.reload();
+    });
   }
 }
