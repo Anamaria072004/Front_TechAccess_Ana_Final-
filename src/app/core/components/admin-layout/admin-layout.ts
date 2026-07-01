@@ -38,8 +38,42 @@ export class AdminLayoutComponent {
   // Signal del usuario actual
   public currentUser = this.authService.currentUser;
 
-  // Módulos del menú
-  public menuItems = this.authService.userModules;
+  // ⚡ Módulos del menú ordenados de forma reactiva y estricta (1 al 7) con computed
+  public menuItems = computed(() => {
+    // Si userModules es un Signal lo ejecutamos como función (), si es un array común quitamos los paréntesis
+    const modules = typeof this.authService.userModules === 'function' 
+      ? this.authService.userModules() 
+      : (this.authService.userModules as any[]);
+      
+    const rawModules = modules || [];
+
+    // Diccionario con las posiciones exactas deseadas
+    const ordenFijo: { [key: string]: number } = {
+      'inicio': 1,
+      'home': 1,
+      'roles': 2,
+      'users': 3,
+      'usuarios': 3,
+      'fichas': 4,
+      'dispositivos': 5,
+      'devices': 5,
+      'vehiculos': 6,
+      'vehículos': 6,
+      'vehicles': 6,
+      'accesos': 7
+    };
+
+    // Retorna una copia ordenada sin alterar el estado original
+    return [...rawModules].sort((a, b) => {
+      const nameA = (a.name || a || '').toLowerCase().trim();
+      const nameB = (b.name || b || '').toLowerCase().trim();
+
+      const pesoA = ordenFijo[nameA] ?? 99;
+      const pesoB = ordenFijo[nameB] ?? 99;
+
+      return pesoA - pesoB;
+    });
+  });
 
   // Breakpoint signal (Solución definitiva al NG0100 y parpadeos en layout)
   public isHandset = toSignal(
@@ -58,7 +92,7 @@ export class AdminLayoutComponent {
    * Basado en los módulos reales registrados en el backend.
    */
   getIcon(moduleName: string): string {
-    const name = moduleName.toLowerCase();
+    const name = moduleName.toLowerCase().trim();
     const iconMap: { [key: string]: string } = {
       'inicio':        'home',
       'home':          'home',
@@ -81,7 +115,8 @@ export class AdminLayoutComponent {
     return iconMap[name] ?? 'extension';
   }
 
- logout(): void {
+  // Cierre de sesión limpio con redirección directa al flujo de autenticación
+  logout(): void {
     this.authService.logout();
     this.router.navigate(['/auth/login']).then(() => {
       window.location.reload();
