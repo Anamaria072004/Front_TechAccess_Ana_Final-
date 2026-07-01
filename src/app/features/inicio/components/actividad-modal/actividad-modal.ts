@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef, Inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -6,7 +6,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpClient } from '@angular/common/http';
-import { API_URL } from '../../../../app.config.token';
 
 interface AccesoMapeado {
   usuarioNombre: string;
@@ -41,12 +40,10 @@ export class ActividadModalComponent implements OnInit {
   cargando = true;
   hayError = false;
 
+  // Filtros
   filtroTexto = '';
   filtroTipo = 'Todos';
   filtroPeriodo = 'Todos';
-
-  // Inyectamos la base URL
-  constructor(@Inject(API_URL) private apiUrlBase: string) {}
 
   ngOnInit(): void {
     this.cargarRegistros();
@@ -64,23 +61,26 @@ export class ActividadModalComponent implements OnInit {
       }
     }, 10000);
 
-    // Usamos la URL inyectada
-    this.http.get<any>(`${this.apiUrlBase}/reg-acceso`).subscribe({
+    this.http.get<any>('http://localhost:3000/api/reg-acceso').subscribe({
       next: (res) => {
         clearTimeout(safetyTimeout);
+
         let raw: any[] = [];
-        if (Array.isArray(res)) raw = res;
-        else if (Array.isArray(res?.data)) raw = res.data;
-        else if (Array.isArray(res?.registros)) raw = res.registros;
-        else if (Array.isArray(res?.items)) raw = res.items;
-        else {
-          const firstArray = Object.values(res || {}).find(v => Array.isArray(v));
-          raw = (firstArray as any[]) || [];
+        if (Array.isArray(res)) {
+          raw = res;
+        } else if (Array.isArray(res?.data)) {
+          raw = res.data;
+        } else if (Array.isArray(res?.registros)) {
+          raw = res.registros;
+        } else {
+          raw = res?.items || Object.values(res || {}).find(v => Array.isArray(v)) || [];
         }
 
         this.registros = raw.map((acc: any) => {
           const userObj = acc.usuario;
-          const name = userObj ? `${userObj.name || ''} ${userObj.lastName || ''}`.trim() : `Usuario ID: ${acc.usuarioId || acc.userId || acc.id || '?'}`;
+          const name = userObj
+            ? `${userObj.name || ''} ${userObj.lastName || ''}`.trim()
+            : `Usuario ID: ${acc.usuarioId || acc.userId || acc.id || '?'}`;
           const doc = userObj?.docNumber || userObj?.documento || '-';
           const esIngreso = !!acc.accion;
           const dateObj = new Date(acc.horaFecha || acc.fecha || acc.createdAt);
@@ -99,10 +99,12 @@ export class ActividadModalComponent implements OnInit {
             horaFecha: dateObj,
             timeStr: timeFormatted,
             observacion: acc.observacion || ''
-          } as AccesoMapeado;
+          };
         });
 
+        // Ordenar del más reciente al más antiguo para la tabla
         this.registros.sort((a, b) => b.horaFecha.getTime() - a.horaFecha.getTime());
+
         this.aplicarFiltros();
         this.cargando = false;
         this.cdr.detectChanges();
@@ -123,15 +125,22 @@ export class ActividadModalComponent implements OnInit {
     hoy.setHours(0, 0, 0, 0);
 
     this.registrosFiltrados = this.registros.filter(reg => {
-      const matchesTexto = !textoLower || reg.usuarioNombre.toLowerCase().includes(textoLower) || reg.documento.includes(textoLower);
-      const matchesTipo = this.filtroTipo === 'Todos' || (this.filtroTipo === 'Ingresos' && reg.tipo === 'Ingreso') || (this.filtroTipo === 'Salidas' && reg.tipo === 'Salida');
-      
+      const matchesTexto = !textoLower ||
+        reg.usuarioNombre.toLowerCase().includes(textoLower) ||
+        reg.documento.includes(textoLower);
+
+      const matchesTipo = this.filtroTipo === 'Todos' ||
+        (this.filtroTipo === 'Ingresos' && reg.tipo === 'Ingreso') ||
+        (this.filtroTipo === 'Salidas' && reg.tipo === 'Salida');
+
       let matchesPeriodo = true;
       if (this.filtroPeriodo !== 'Todos') {
         const regDate = new Date(reg.horaFecha);
         regDate.setHours(0, 0, 0, 0);
-        if (this.filtroPeriodo === 'Hoy') matchesPeriodo = regDate.getTime() === hoy.getTime();
-        else if (this.filtroPeriodo === 'Ayer') {
+
+        if (this.filtroPeriodo === 'Hoy') {
+          matchesPeriodo = regDate.getTime() === hoy.getTime();
+        } else if (this.filtroPeriodo === 'Ayer') {
           const ayer = new Date(hoy);
           ayer.setDate(ayer.getDate() - 1);
           matchesPeriodo = regDate.getTime() === ayer.getTime();
@@ -141,6 +150,7 @@ export class ActividadModalComponent implements OnInit {
           matchesPeriodo = regDate.getTime() >= limite.getTime();
         }
       }
+
       return matchesTexto && matchesTipo && matchesPeriodo;
     });
   }

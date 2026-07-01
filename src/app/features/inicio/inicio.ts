@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef, Inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -7,8 +7,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { HttpClient } from '@angular/common/http';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ActividadModalComponent } from './components/actividad-modal/actividad-modal';
-import { API_URL } from '../../app.config.token';
-
 
 @Component({
   selector: 'app-inicio',
@@ -31,17 +29,15 @@ export class InicioComponent implements OnInit {
   private dialog = inject(MatDialog);
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
-
+  
   totalUsuarios = 0;
   totalVehiculos = 0;
   totalFichas = 0;
   totalDispositivos = 0;
+
   recentActivity: any[] = [];
 
-  constructor(@Inject(API_URL) private apiUrlBase: string) {}
-
   ngOnInit() {
-    // 1. Obtener nombre del usuario logueado
     const userData = localStorage.getItem('user');
     if (userData) {
       try {
@@ -52,35 +48,37 @@ export class InicioComponent implements OnInit {
       }
     }
 
-    // 2. Traer el conteo real desde los endpoints usando la URL inyectada
-    this.http.get<any>(`${this.apiUrlBase}/users`).subscribe({
+    // Consultas de KPIs...
+    this.http.get<any>('http://localhost:3000/api/users').subscribe({
       next: (res) => { this.totalUsuarios = res.total !== undefined ? res.total : (res.data || res).length; this.cdr.detectChanges(); },
       error: () => console.log('Sin usuarios')
     });
 
-    this.http.get<any>(`${this.apiUrlBase}/vehiculos`).subscribe({
+    this.http.get<any>('http://localhost:3000/api/vehiculos').subscribe({
       next: (res) => { this.totalVehiculos = res.total !== undefined ? res.total : (res.data || res).length; this.cdr.detectChanges(); },
       error: () => console.log('Sin vehículos')
     });
 
-    this.http.get<any>(`${this.apiUrlBase}/ficha`).subscribe({
+    this.http.get<any>('http://localhost:3000/api/ficha').subscribe({
       next: (res) => { this.totalFichas = res.total !== undefined ? res.total : (res.data || res).length; this.cdr.detectChanges(); },
       error: () => console.log('Sin fichas')
     });
 
-    this.http.get<any>(`${this.apiUrlBase}/dispositivos`).subscribe({
+    this.http.get<any>('http://localhost:3000/api/dispositivos').subscribe({
       next: (res) => { this.totalDispositivos = res.total !== undefined ? res.total : (res.data || res).length; this.cdr.detectChanges(); },
       error: () => console.log('Sin dispositivos')
     });
 
-    this.http.get<any>(`${this.apiUrlBase}/reg-acceso`).subscribe({
+    // EndPoint del Feed Principal ordenado correctamente por fecha
+    this.http.get<any>('http://localhost:3000/api/reg-acceso').subscribe({
       next: (res) => { 
         const registros = res.data || res;
+        
         if (registros.length > 0) {
-          const ultimos = registros.slice(-4).reverse();
-          this.recentActivity = ultimos.map((acc: any) => {
+          const registrosMapeados = registros.map((acc: any) => {
             const userStr = acc.usuario ? `${acc.usuario.name} ${acc.usuario.lastName}` : `Usuario ID: ${acc.usuarioId || acc.id}`;
             const dateObj = new Date(acc.horaFecha);
+            
             let timeStr = 'Fecha desconocida';
             if (!isNaN(dateObj.getTime())) {
               const time = dateObj.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -90,6 +88,7 @@ export class InicioComponent implements OnInit {
 
             const esIngreso = !!acc.accion;
             return {
+              dateVal: dateObj.getTime() || 0,
               type: esIngreso ? 'Ingreso' : 'Salida',
               message: `${userStr} ha ${esIngreso ? 'ingresado al' : 'salido del'} centro.`,
               time: timeStr,
@@ -97,7 +96,14 @@ export class InicioComponent implements OnInit {
               color: esIngreso ? 'blue' : 'orange'
             };
           });
+
+          // Ordenar de más nuevo a más viejo
+          registrosMapeados.sort((a: any, b: any) => b.dateVal - a.dateVal);
+
+          // Cortar los 4 más recientes
+          this.recentActivity = registrosMapeados.slice(0, 4);
         }
+        
         this.cdr.detectChanges(); 
       },
       error: () => console.log('Sin ingresos')
@@ -105,11 +111,16 @@ export class InicioComponent implements OnInit {
   }
 
   abrirModalActividad(): void {
-    this.dialog.open(ActividadModalComponent, {
+    const dialogRef = this.dialog.open(ActividadModalComponent, {
       width: '1100px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       disableClose: false
+    });
+
+    // Actualiza el feed del Dashboard cuando cierres el modal
+    dialogRef.afterClosed().subscribe(() => {
+      this.ngOnInit();
     });
   }
 }
