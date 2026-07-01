@@ -61,7 +61,8 @@ export class ActividadModalComponent implements OnInit {
       }
     }, 10000);
 
-    this.http.get<any>('http://localhost:3000/api/reg-acceso').subscribe({
+    // En actividad-modal.component.ts cambia esto:
+this.http.get<any>('https://back-techaccess.onrender.com/api/reg-acceso').subscribe({
       next: (res) => {
         clearTimeout(safetyTimeout);
 

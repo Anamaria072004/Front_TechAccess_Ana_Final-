@@ -26,6 +26,9 @@ export class InicioComponent implements OnInit {
   userName = 'Usuario';
   currentDate = new Date();
   
+  // 🌍 URL de producción en Render (Cambia esto por tu URL real si es diferente)
+  private apiUrl = 'https://back-techaccess.onrender.com/api'; 
+  
   private dialog = inject(MatDialog);
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
@@ -48,29 +51,29 @@ export class InicioComponent implements OnInit {
       }
     }
 
-    // Consultas de KPIs...
-    this.http.get<any>('http://localhost:3000/api/users').subscribe({
+    // Consultas de KPIs usando la URL de Render
+    this.http.get<any>(`${this.apiUrl}/users`).subscribe({
       next: (res) => { this.totalUsuarios = res.total !== undefined ? res.total : (res.data || res).length; this.cdr.detectChanges(); },
       error: () => console.log('Sin usuarios')
     });
 
-    this.http.get<any>('http://localhost:3000/api/vehiculos').subscribe({
+    this.http.get<any>(`${this.apiUrl}/vehiculos`).subscribe({
       next: (res) => { this.totalVehiculos = res.total !== undefined ? res.total : (res.data || res).length; this.cdr.detectChanges(); },
       error: () => console.log('Sin vehículos')
     });
 
-    this.http.get<any>('http://localhost:3000/api/ficha').subscribe({
+    this.http.get<any>(`${this.apiUrl}/ficha`).subscribe({
       next: (res) => { this.totalFichas = res.total !== undefined ? res.total : (res.data || res).length; this.cdr.detectChanges(); },
       error: () => console.log('Sin fichas')
     });
 
-    this.http.get<any>('http://localhost:3000/api/dispositivos').subscribe({
+    this.http.get<any>(`${this.apiUrl}/dispositivos`).subscribe({
       next: (res) => { this.totalDispositivos = res.total !== undefined ? res.total : (res.data || res).length; this.cdr.detectChanges(); },
       error: () => console.log('Sin dispositivos')
     });
 
-    // EndPoint del Feed Principal ordenado correctamente por fecha
-    this.http.get<any>('http://localhost:3000/api/reg-acceso').subscribe({
+    // EndPoint del Feed Principal usando la URL de Render
+    this.http.get<any>(`${this.apiUrl}/reg-acceso`).subscribe({
       next: (res) => { 
         const registros = res.data || res;
         
