@@ -20,6 +20,6 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideNativeDateAdapter(),
     { provide: LOCALE_ID, useValue: 'es' },
-    { provide: API_URL, useValue: 'https://back-techaccess.onrender.com/api' }
+    { provide: API_URL, useValue: 'https://back-techaccess-ana-final.onrender.com/api' }
   ]
 };
