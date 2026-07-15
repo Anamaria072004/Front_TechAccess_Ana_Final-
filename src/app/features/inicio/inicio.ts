@@ -26,8 +26,9 @@ export class InicioComponent implements OnInit {
   userName = 'Usuario';
   currentDate = new Date();
   
-  // 🌍 URL de producción en Render (Cambia esto por tu URL real si es diferente)
-  private apiUrl = 'https://back-techaccess.onrender.com/api'; 
+  // URL de producción en Render 
+  private apiUrl = 'https://back-techaccess-ana-final.onrender.com/api'; 
+  
   
   private dialog = inject(MatDialog);
   private http = inject(HttpClient);
